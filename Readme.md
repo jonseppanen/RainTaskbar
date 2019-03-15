@@ -10,6 +10,7 @@ Well, it's a skeleton of one. I built this repo so you can make your own taskbar
   - Extract icons from Tasks and save them to the Documents\raintaskbar dir
   - Extract dominant color from icons for use later
   - Start Button Example
+  - A variable (activetasknumber) is saved in rainmeter to indicate which task number is actually active
 
 ### Coming features
 
