@@ -2,84 +2,12 @@ SetTitleMatchMode "RegEx"
 #Persistent
 #SingleInstance force
 CoordMode "Mouse", "Screen"
-
 #Include GDIP.ahk
-
-rainmeterThemeDir := getThisDirName()
-taskList := {}
-ActiveHwnd := ""
-
-IsWindowCloaked(hwnd)
-{
-    static gwa := DllCall("GetProcAddress", "ptr", DllCall("LoadLibrary", "str", "dwmapi", "ptr"), "astr", "DwmGetWindowAttribute", "ptr")
-    return (gwa && DllCall(gwa, "ptr", hwnd, "int", 14, "int*", cloaked, "int", 4) = 0) ? cloaked : 0
-}
-
-taskSwitch(wParam, lParam)
-{ 
-    Global Tasklist
-    
-    IDVar := Tasklist[wParam,"ahkid"]
-    minMax := WinGetMinMax("ahk_id " IDVar)
-    Global ActiveHwnd
-
-    if(minMax < 0){
-        WinActivate "ahk_id " IDVar
-        ActiveHwnd := IDVar
-        return
-    }
-    else if(ActiveHwnd = IDVar){
-        WinMinimize "ahk_id " IDVar
-    }
-    else{
-        WinActivate "ahk_id " IDVar
-        ActiveHwnd := IDVar
-    }
-}
-
-
-Send_WM_COPYDATA(ByRef StringToSend, ByRef TargetWindowClass)  
-{
-    VarSetCapacity(CopyDataStruct, 3*A_PtrSize, 0) 
-    SizeInBytes := (StrLen(StringToSend) + 1) * (A_IsUnicode ? 2 : 1)
-    NumPut(1, CopyDataStruct) 
-    NumPut(SizeInBytes, CopyDataStruct, A_PtrSize)  
-    NumPut(&StringToSend, CopyDataStruct, 2*A_PtrSize) 
-    SendMessage(0x4a, 0, &CopyDataStruct,, "ahk_class " TargetWindowClass)  
-    return ErrorLevel  
-}
-
-SendRainmeterCommand(command)
-{
-    Global rainmeterThemeDir
-    
-    commandWrap :=  "[" . command . " " . rainmeterThemeDir . "]"
-    
-    if(Send_WM_COPYDATA(commandWrap, "ahk_class RainmeterMeterWindow") = 1){
-        ExitApp
-    }
-}
-
-hasValue(haystack, needle) 
-{
-    if(!isObject(haystack))
-        return false
-    if(haystack.Length()==0)
-        return false
-    for k,v in haystack
-        if(v==needle)
-            return true
-    return false
-}
-
-getThisDirName()
-{
-    ;Msgbox A_ScriptDir "\Taskbar.ahk - AutoHotkey v" A_AhkVersion
-    SplitPath A_ScriptDir , , ResourcesDir
-    SplitPath ResourcesDir , ,OutFileName3,OutFileName2
-    Splitpath OutFileName3 , Skindir
-    return Skindir
-}
+#Include LIB.ahk
+OnMessage(16666, "taskSwitch")
+OnMessage(16667, "openStart")
+OnMessage(16668, "replacetaskbar")
+OnExit("ExitFunc")
 
 loadIconCache(iconCacheDir){
     iconCache := []
@@ -109,86 +37,144 @@ loadColorCache(iconCacheDir){
     return colorCache
 }
 
+tasklist := []
+getSortedWindowList(){
+    ids := WinGetList(,, "NxDock|Program Manager|Task Switching|^$")
+    sortstring := ""
+    windowarray := []
+    Global tasklist
+    Loop ids.Length()
+    {
+        if ((WinGetExStyle("ahk_id " ids[A_Index]) & 0x8000088) || WinGetTitle("ahk_id " ids[A_Index]) = "VirtualDesktopSwitcher" || IsWindowCloaked(ids[A_Index]))
+        {
+            continue
+        }
+        sortstring :=  sortstring  WinGetProcessName("ahk_id " ids[A_Index]) ":" ids[A_Index] ","
+    }   
+    sortarray := StrSplit(Sort(sortstring,"D,"),",")
+    Loop sortarray.Length(){
+        thisId := StrSplit(sortarray[A_Index],":")
+        if(thisId[(thisId.Length())]){
+            windowarray.push(thisId[(thisId.Length())])
+        }
+    } 
+    
+    tasklist := windowarray
+    return tasklist
+}
+
+getDominantIconColor(colorCache, taskExeName, hicon){
+    dominantcolor := ""
+    if(!colorCache[taskExeName]){
+        dominantcolor := Gdip_Getavg(Gdip_CreateBitmapFromHICON(hicon)) ",255"
+        IniWrite dominantcolor, iconCacheDir "colors.ini", "iconColors", taskExeName
+    }
+    else{
+        dominantcolor := colorCache[taskExeName]
+    }
+    return dominantcolor
+}
+
+ActiveHwnd := ""
+taskSwitch(wParam, lParam)
+{ 
+    Global tasklist
+    IDVar := tasklist[wParam]
+    minMax := WinGetMinMax("ahk_id " IDVar)
+    Global ActiveHwnd
+
+    if(minMax < 0){
+        WinActivate "ahk_id " IDVar
+        ActiveHwnd := IDVar
+        return
+    }
+    else if(ActiveHwnd = IDVar){
+        WinMinimize "ahk_id " IDVar
+    }
+    else{
+        WinActivate "ahk_id " IDVar
+        ActiveHwnd := IDVar
+    }
+}
+
+getIconHandle(taskExePath){
+    VarSetCapacity(fileinfo, fisize := A_PtrSize + 688)
+    if DllCall("shell32\SHGetFileInfoW", "WStr", taskExePath, "UInt", 0, "Ptr", &fileinfo, "UInt", fisize, "UInt", 0x100)
+    {
+        return NumGet(fileinfo, 0, "Ptr")
+    }
+}
+
+windowtitles := []
+getWindowTitles(){
+    Global windowtitles
+    Global tasklist
+    Loop tasklist.Length()
+    {
+        thisId := tasklist[A_Index]
+        thisTitle := WinGetTitle("ahk_id " thisId)
+        if(windowtitles.Length() > 0 && thisTitle = windowtitles[A_Index]){
+            continue
+        }
+        windowtitles[A_Index] := thisTitle
+
+        SendRainmeterCommand("!SetOption MeasureTask" A_Index "WindowTitle String `""  thisTitle  "`" ")
+        SendRainmeterCommand("!Updatemeasuregroup measuretask" A_Index "group ")
+        SendRainmeterCommand("!Updatemetergroup Task" A_Index "Group ")
+        SendRainmeterCommand("!Redrawgroup Task" A_Index "Group ")
+    }
+}
+
+lastasks := []
 getWindows()
 {    
-
-    Global Tasklist
-    Tasklist := {}
-    taskString := ""
     iconCacheDir := EnvGet("USERPROFILE") "\Documents\raintaskbar\"
     iconCache := loadIconCache(iconCacheDir)
     colorCache := loadColorCache(iconCacheDir)
+    ids := getSortedWindowList()
+    activeid := WinGetID("A")
+    Global lastasks
 
-    ids := WinGetList(,, "NxDock|Program Manager|Task Switching|^$")
-    loopInt := 1
 
     Loop ids.Length()
     {
         thisId := ids[A_Index]
-        WinGetPos(,,, Height,"ahk_id " thisId)
+        if(thisId = activeid){
+            SendRainmeterCommand("!SetVariable ActiveTaskNumber " A_Index )
+        }
 
-        if ((WinGetExStyle("ahk_id " thisId) & 0x8000088) || !Height || WinGetTitle("ahk_id " thisId) = "VirtualDesktopSwitcher" || IsWindowCloaked(thisId))
-        {
+        if(lastasks.Length() > 0 && thisId = lastasks[A_Index]){
             continue
         }
-
-        taskExeName := WinGetProcessName("ahk_id " thisId)
-        taskExePath := WinGetProcessPath("ahk_id " thisId)
-
-
-        VarSetCapacity(fileinfo, fisize := A_PtrSize + 688)
-        if DllCall("shell32\SHGetFileInfoW", "WStr", taskExePath, "UInt", 0, "Ptr", &fileinfo, "UInt", fisize, "UInt", 0x100)
-        {
-            hicon := NumGet(fileinfo, 0, "Ptr")
-            hbmp := Gdip_CreateBitmapFromHICON(hicon)
-            taskList[loopInt,"hbmp"] := hbmp
+        lastasks[A_Index] := thisId
+        
+        
+        taskExeFullName := WinGetProcessName("ahk_id " thisId)
+        taskExeName := StrReplace(taskExeFullName, ".exe", "")
+        hicon := getIconHandle(WinGetProcessPath("ahk_id " thisId))
+        dominantcolor := getDominantIconColor(colorCache, taskExeName, hicon)
+        if(!hasValue(iconCache, taskExeName ".bmp")){
+            SaveHICONtoFile( hicon, iconCacheDir taskExeName ".bmp" )
         }
-
-        targetExeClass := WinGetClass("ahk_id " thisId)
-        taskExeTitle := WinGetTitle("ahk_id " thisId)
-        taskExeState := WinGetMinMax("ahk_id " thisId)
-
-        taskList[loopInt,"ahkid"] := thisId
-        taskList[loopInt,"indexNumber"] := loopInt
-        taskList[loopInt,"taskExeName"] := StrReplace(taskExeName, ".exe", "")
-        taskList[loopInt,"taskExePath"] := taskExePath
-        taskList[loopInt,"targetExeClass"] := targetExeClass
-        taskList[loopInt,"taskExeTitle"] := taskExeTitle
-
-        if(!colorCache[taskList[loopInt,"taskExeName"]]){
-            taskList[loopInt, "dominantcolor"] := Gdip_Getavg(hbmp) ",255"
-            IniWrite taskList[loopInt, "dominantcolor"], iconCacheDir "colors.ini", "iconColors", taskList[loopInt,"taskExeName"]
-        }
-        else{
-            taskList[loopInt, "dominantcolor"] := colorCache[taskList[loopInt,"taskExeName"]]
-        }
-
-        taskList[loopInt, "State"] := taskExeState
-
-        if(!hasValue(iconCache, taskList[loopInt,"taskExeName"] ".bmp")){
-            SaveHICONtoFile( hicon, iconCacheDir taskList[loopInt,"taskExeName"] ".bmp" )
-        }
-
-        taskList[loopInt, "iconPath"] := iconCacheDir taskList[loopInt,"taskExeName"] ".bmp"
-
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "Exe String `""  taskList[loopInt,"taskExeName"]  "`" ")
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "Color String `""  taskList[loopInt,"dominantcolor"]  "`" ")
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "WindowTitle String `""  taskList[loopInt,"taskExeTitle"]  "`" ")
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "IconPath String `""  taskList[loopInt,"IconPath"]  "`" ")
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "State  String  `""  taskList[loopInt,"State"]  "`" ")
-
-        loopInt++
+        SendRainmeterCommand("!SetOption MeasureTask" A_Index "Exe String `""  taskExeName  "`" ")
+        SendRainmeterCommand("!SetOption MeasureTask" A_Index "Color String `""  dominantcolor  "`" ")
+        SendRainmeterCommand("!SetOption MeasureTask" A_Index "IconPath String `""  iconCacheDir taskExeName ".bmp"  "`" ")
+        SendRainmeterCommand("!SetOption MeasureTask" A_Index "State  String  `""  WinGetMinMax("ahk_id " thisId)  "`" ")
+        SendRainmeterCommand("!Updatemeasuregroup measuretask" A_Index "group ")
+        SendRainmeterCommand("!Updatemetergroup Task" A_Index "Group ")
+        SendRainmeterCommand("!Redrawgroup Task" A_Index "Group ")
     }
 
-    Loop (16 - loopInt){
-        SendRainmeterCommand("!SetOption MeasureTask" loopInt "Exe String NULL")
-        loopInt++
+    Loop (16 - ids.Length()){
+        SendRainmeterCommand("!SetOption MeasureTask" (ids.Length() +  A_Index) "Exe String NULL")
+        SendRainmeterCommand("!Updatemeasuregroup measuretask" (ids.Length() +  A_Index) "group ")
+        SendRainmeterCommand("!Updatemetergroup Task" (ids.Length() +  A_Index) "Group ")
+        SendRainmeterCommand("!Redrawgroup Task" (ids.Length() +  A_Index) "Group ")
     }
 }
 
 SendRainmeterCommand("!SetOption MeasureWindowMessage WindowName `""  A_ScriptDir "\Taskbar.ahk - AutoHotkey v" A_AhkVersion  "`" ")
 SendRainmeterCommand("!UpdateMeasure MeasureWindowMessage")
-OnMessage(16666, "taskSwitch")
-
-SetTimer "getwindows", 1000
-
+SetTimer "getwindows", 300
+SetTimer "getWindowTitles", 300
+replacetaskbar(A_Args[1],A_Args[2])

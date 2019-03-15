@@ -9,6 +9,7 @@ Well, it's a skeleton of one. I built this repo so you can make your own taskbar
   - Get all the information about tasks and export to measures (use rainmeter about to see the information)
   - Extract icons from Tasks and save them to the Documents\raintaskbar dir
   - Extract dominant color from icons for use later
+  - Start Button Example
 
 ### Coming features
 

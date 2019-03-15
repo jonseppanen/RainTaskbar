@@ -28,11 +28,6 @@ If !pToken := Gdip_Startup()
 	ExitApp
 }
 
-ExitFunc()
-{
-   global pToken
-   Gdip_Shutdown(pToken)
-}
 
 Gdip_CreateBitmapFromHICON(hIcon)
 {
