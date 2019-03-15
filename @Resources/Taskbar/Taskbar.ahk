@@ -8,6 +8,7 @@ OnMessage(16666, "taskSwitch")
 OnMessage(16667, "openStart")
 OnMessage(16668, "replacetaskbar")
 OnExit("ExitFunc")
+iconCacheDir := EnvGet("USERPROFILE") "\Documents\raintaskbar\"
 
 loadIconCache(iconCacheDir){
     iconCache := []
@@ -43,9 +44,11 @@ getSortedWindowList(){
     sortstring := ""
     windowarray := []
     Global tasklist
+
     Loop ids.Length()
     {
-        if ((WinGetExStyle("ahk_id " ids[A_Index]) & 0x8000088) || WinGetTitle("ahk_id " ids[A_Index]) = "VirtualDesktopSwitcher" || IsWindowCloaked(ids[A_Index]))
+        WinGetPos(,,, Height,"ahk_id " ids[A_Index])
+        if ((WinGetExStyle("ahk_id " ids[A_Index]) & 0x8000088) || !Height || WinGetTitle("ahk_id " ids[A_Index]) = "VirtualDesktopSwitcher" || IsWindowCloaked(ids[A_Index]))
         {
             continue
         }
@@ -64,6 +67,7 @@ getSortedWindowList(){
 }
 
 getDominantIconColor(colorCache, taskExeName, hicon){
+    Global iconCacheDir
     dominantcolor := ""
     if(!colorCache[taskExeName]){
         dominantcolor := Gdip_Getavg(Gdip_CreateBitmapFromHICON(hicon)) ",255"
@@ -128,7 +132,7 @@ getWindowTitles(){
 lastasks := []
 getWindows()
 {    
-    iconCacheDir := EnvGet("USERPROFILE") "\Documents\raintaskbar\"
+    Global iconCacheDir
     iconCache := loadIconCache(iconCacheDir)
     colorCache := loadColorCache(iconCacheDir)
     ids := getSortedWindowList()
