@@ -7,14 +7,16 @@ CoordMode "Mouse", "Screen"
 OnMessage(16666, "taskSwitch")
 OnMessage(16667, "openStart")
 OnMessage(16668, "replacetaskbar")
+OnMessage(16669, "ExitFunc")
 OnExit("ExitFunc")
 iconCacheDir := EnvGet("USERPROFILE") "\Documents\raintaskbar\"
+if(!FileExist(iconCacheDir)){
+    DirCreate iconCacheDir
+}
 
 loadIconCache(iconCacheDir){
     iconCache := []
-    if(!FileExist(iconCacheDir)){
-        DirCreate iconCacheDir
-    }
+    
     Loop Files, iconCacheDir "*.bmp"
     {
         iconCache.push(A_LoopFileName)
@@ -24,9 +26,6 @@ loadIconCache(iconCacheDir){
 
 loadColorCache(iconCacheDir){
     colorCache := {}
-    if(!FileExist(iconCacheDir)){
-        DirCreate iconCacheDir
-    }
     ColorArray := StrSplit(IniRead(iconCacheDir "colors.ini", "iconColors"), "`n")
 
     Loop ColorArray.Length()

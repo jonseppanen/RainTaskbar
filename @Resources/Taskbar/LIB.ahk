@@ -47,7 +47,7 @@ hasValue(haystack, needle)
     return false
 }
 
-ExitFunc(ExitReason, ExitCode)
+ExitFunc()
 {
     global pToken
     Gdip_Shutdown(pToken)
@@ -88,7 +88,7 @@ setdesktoparea(wParam, lParam){
 RemoveAppBar(){
   Global APPBARDATA
   DllCall("Shell32.dll\SHAppBarMessage", UInt,(ABM_REMOVE := 0x1), Ptr,&APPBARDATA )
-  WinShow "ahk_class Shell_TrayWnd"
+  ;WinShow "ahk_class Shell_TrayWnd"
   ExitApp
 }
 
@@ -98,5 +98,5 @@ openStart(){
 
 replacetaskbar(wParam, lParam){
     setdesktoparea(wParam, lParam)
-    WinHide "ahk_class Shell_TrayWnd"   
+    ;WinHide "ahk_class Shell_TrayWnd"   
 }

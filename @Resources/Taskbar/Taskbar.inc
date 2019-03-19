@@ -8,11 +8,17 @@ Plugin=WindowMessagePlugin
 WindowName=""
 DynamicVariables=1
 
+[MeasureTaskbar]
+Measure=Plugin
+Plugin=HideTaskbar
+BarInstance=Both
+DynamicVariables=1
+
 [MeasureRunTaskbar]
 UpdateDivider=-1
 DynamicVariables=1
 Measure=calc
-OnUpdateAction=[#@#\Taskbar\Taskbar.exe #@#\Taskbar\Taskbar.ahk "#CURRENTCONFIGWIDTH#" "CURRENTCONFIGHEIGHT"]
+OnUpdateAction=[!CommandMeasure MeasureTaskbar "Hide"][!CommandMeasure MeasureTaskbar "AutoHide"][#@#\Taskbar\Taskbar.exe #@#\Taskbar\Taskbar.ahk "#CURRENTCONFIGWIDTH#" "CURRENTCONFIGHEIGHT"]
 
 [MeasureTaskbarSize]
 DynamicVariables=1

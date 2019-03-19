@@ -1,5 +1,3 @@
-OnExit("ExitFunc")
-
 Gdip_Startup()
 {
 	Ptr := A_PtrSize ? "UPtr" : "UInt"
@@ -127,6 +125,10 @@ Gdip_GetAvg(pBitmap, size:=16)
 		x+=4
 	}
 
+	if(!dominantRGB){
+		dominantRGB := "200,200,200"
+	}
+
     return dominantRGB
 }
 
@@ -217,6 +219,23 @@ extractIconFromExe(FileName)
 	return hIcon
 }
 
+;=======================================================================
+;            MD5 check a string
+;=======================================================================
+MD5(string, case := False)    ; by SKAN | rewritten by jNizM
+{
+    static MD5_DIGEST_LENGTH := 16
+    hModule := DllCall("LoadLibrary", "Str", "advapi32.dll", "Ptr")
+    , VarSetCapacity(MD5_CTX, 104, 0), DllCall("advapi32\MD5Init", "Ptr", &MD5_CTX)
+    , DllCall("advapi32\MD5Update", "Ptr", &MD5_CTX, "AStr", string, "UInt", StrLen(string))
+    , DllCall("advapi32\MD5Final", "Ptr", &MD5_CTX)
+    loop (MD5_DIGEST_LENGTH)
+    { 
+		   o .= Format("{:02" (case ? "X" : "x") "}", NumGet(MD5_CTX, 87 + A_Index, "UChar"))
+	}
+	DllCall("FreeLibrary", "Ptr", hModule)
+    return o
+}
 
 ;=======================================================================
 ;            Split a Hex code to indivdual RGB colors 
