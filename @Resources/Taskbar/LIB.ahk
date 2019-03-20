@@ -76,7 +76,7 @@ setdesktoparea(wParam, lParam){
     Off :=  NumPut( ABM, Off+0, "UInt" )
     Off :=  NumPut(   GetTaskBarLocation(), Off+0, "UInt" ) 
     Off :=  NumPut(  0, Off+0, "Int" ) 
-    Off :=  NumPut(  1380 , Off+0, "Int" ) 
+    Off :=  NumPut(  (A_ScreenHeight - lParam) , Off+0, "Int" ) 
     Off :=  NumPut(  wParam, Off+0, "Int" ) 
     Off :=  NumPut(  lParam, Off+0, "Int" )
     Off :=  NumPut(   1, Off+0, "Ptr" )
