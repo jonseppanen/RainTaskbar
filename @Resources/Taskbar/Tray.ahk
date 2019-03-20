@@ -147,10 +147,18 @@ TrayIcon_GetInfo(sExeName := "")
 					trayIcons[Index,"hIcon"]   := hIcon
 					trayIcons[Index,"iconMD5"] := iconMD5
 					trayIcons[Index,"Path"]    := systrayicondir "\" sProcess "\" iconMD5  ".bmp"
+					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Color String `""  iconavgcolor  "`" ")
+					SendRainmeterCommand("!SetOption MeasureTray" A_Index "iconpath String `""  trayIcons[Index,"Path"]  "`" ")
 				}
 
 				if(sTooltip != trayIcons[Index,"Tooltip"] ){
 					trayIcons[Index,"Tooltip"] := sTooltip
+					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Tooltip String `""  sTooltip  "`" ")
+				}
+
+				if(sProcess != trayIcons[Index,"sProcess"] ){
+					trayIcons[Index,"Process"] := sProcess
+					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Exe String `""  sProcess  "`" ")
 				}
 
 				trayIcons[Index,"idx"]     := A_Index - 1
@@ -170,6 +178,60 @@ TrayIcon_GetInfo(sExeName := "")
 	}
 	DetectHiddenWindows Setting_A_DetectHiddenWindows
 	Return trayIcons
+}
+
+ClickSystray(wParam, lParam, systemTrayData)
+{
+  if(lParam = 1)
+  {
+    SendSystrayClick(systemTrayData,wParam,"LBUTTONDOWN")
+  }
+  else if(lParam = 3)
+  {
+    SendSystrayClick(systemTrayData,wParam,"RBUTTONDOWN")
+  }
+  else if(lParam = 4)
+  {
+    SendSystrayClick(systemTrayData,wParam,"LBUTTONUP")
+  }
+  else if(lParam = 6)
+  {
+    SendSystrayClick(systemTrayData,wParam,"RBUTTONUP")
+  }
+}
+
+
+SendSystrayClick(trayObject, buttonIndex, sButton := "LBUTTONUP")
+{
+	Global systemTrayData	
+	DetectHiddenWindows (Setting_A_DetectHiddenWindows := A_DetectHiddenWindows) ? "On" : "Off"
+	WM_MOUSEMOVE	  := 0x0200
+	WM_LBUTTONDOWN	  := 0x0201
+	WM_LBUTTONUP	  := 0x0202
+	WM_LBUTTONDBLCLK := 0x0203
+	WM_RBUTTONDOWN	  := 0x0204
+	WM_RBUTTONUP	  := 0x0205
+	WM_RBUTTONDBLCLK := 0x0206
+	WM_MBUTTONDOWN	  := 0x0207
+	WM_MBUTTONUP	  := 0x0208
+	WM_MBUTTONDBLCLK := 0x0209
+	sButton := "WM_" sButton
+	msgID  := systemTrayData["Tray",trayObject,buttonIndex].msgID
+	uID    := systemTrayData["Tray",trayObject,buttonIndex].uID
+	hWnd   := systemTrayData["Tray",trayObject,buttonIndex].hWnd
+
+	if(systemTrayData["Tray",trayObject,buttonIndex].Tooltip = "Safely Remove Hardware and Eject Media" && (sButton := "WM_LBUTTONUP" || sButton := "WM_RBUTTONUP"))
+	{
+		Run "RunDll32.exe shell32.dll,Control_RunDLL hotplug.dll"
+	}
+	else
+	{
+		Sleep 30
+		SendMessage(msgID, uID, %sButton%, , "ahk_id " hWnd)
+	}
+		
+	DetectHiddenWindows Setting_A_DetectHiddenWindows
+	return
 }
 
 SetTimer "TrayIcon_GetInfo", 1000

@@ -4,6 +4,7 @@ SetTitleMatchMode "RegEx"
 CoordMode "Mouse", "Screen"
 #Include GDIP.ahk
 #Include LIB.ahk
+#Include Tray.ahk
 OnMessage(16666, "taskSwitch")
 OnMessage(16667, "openStart")
 OnMessage(16668, "replacetaskbar")
