@@ -18,7 +18,7 @@ DynamicVariables=1
 UpdateDivider=-1
 DynamicVariables=1
 Measure=calc
-OnUpdateAction=[!CommandMeasure MeasureTaskbar "Hide"][!CommandMeasure MeasureTaskbar "AutoHide"][#@#\Taskbar\Taskbar.exe #@#\Taskbar\Taskbar.ahk "#CURRENTCONFIGWIDTH#" "CURRENTCONFIGHEIGHT"]
+OnUpdateAction=[!CommandMeasure MeasureTaskbar "Hide"][!CommandMeasure MeasureTaskbar "AutoHide"][#@#\Taskbar\Taskbar.exe #@#\Taskbar\Taskbar.ahk "#CURRENTCONFIGWIDTH#" "#CURRENTCONFIGHEIGHT#"]
 
 [MeasureTaskbarSize]
 DynamicVariables=1
