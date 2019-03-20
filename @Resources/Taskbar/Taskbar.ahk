@@ -181,4 +181,5 @@ SendRainmeterCommand("!SetOption MeasureWindowMessage WindowName `""  A_ScriptDi
 SendRainmeterCommand("!UpdateMeasure MeasureWindowMessage")
 SetTimer "getwindows", 300
 SetTimer "getWindowTitles", 300
+SetTimer "TrayIcon_GetInfo", 1000
 replacetaskbar(A_Args[1],A_Args[2])

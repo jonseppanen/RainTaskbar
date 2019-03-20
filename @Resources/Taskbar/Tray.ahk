@@ -117,94 +117,101 @@ TrayIcon_GetInfo(sExeName := "")
 			pID := WinGetPID("ahk_id " hWnd)
 			sProcess := WinGetProcessName("ahk_id " hWnd)
 			sClass := WinGetClass("ahk_id " hWnd)
+			DllCall("ReadProcessMemory", Ptr, hProc, Ptr, iString, Ptr, &tip, UPtr, szTip, UPtr, 0)
 
-			
-				DllCall("ReadProcessMemory", Ptr, hProc, Ptr, iString, Ptr, &tip, UPtr, szTip, UPtr, 0)
+			if(sProcess = "TaskMgr.exe" && sToolTip = "Task Manager"){
+				continue
+			}
 
-				sTooltip := StrGet(&tip, "UTF-16")
+			if(hIcon != trayIcons[Index,"hIcon"]){
+				hIconBmp := hIcon
+				iconBitmap := Gdip_CreateBitmapFromHICON(hIcon)
+				if(!iconBitmap)
+				{
+					hIconBmp := extractIconFromExe(WinGetProcessPath("ahk_id " hWnd))
+					iconBitmap := Gdip_CreateBitmapFromHICON(hIconBmp)
+				}
+				iconPixels := Gdip_GetPixels(iconBitmap)
+				iconMD5 := MD5(iconPixels)
+				iconavgcolor := Gdip_GetAvg(iconBitmap)
 
-				if(hIcon != trayIcons[Index,"hIcon"]){
-					hIconBmp := hIcon
-					iconBitmap := Gdip_CreateBitmapFromHICON(hIcon)
-					if(!iconBitmap)
-					{
-						hIconBmp := extractIconFromExe(WinGetProcessPath("ahk_id " hWnd))
-						iconBitmap := Gdip_CreateBitmapFromHICON(hIconBmp)
-					}
-					iconPixels := Gdip_GetPixels(iconBitmap)
-					iconMD5 := MD5(iconPixels)
-					iconavgcolor := Gdip_GetAvg(iconBitmap)
-
-					if(!FileExist(systrayicondir "\" sProcess)){
-						DirCreate systrayicondir "\" sProcess
-					}
-
-					if(!FileExist(systrayicondir "\" sProcess "\" iconMD5  ".bmp")){
-						SaveHICONtoFile(hIconBmp,systrayicondir "\" sProcess "\" iconMD5 ".bmp")
-					}
-
-					trayIcons[Index,"Color"]   := iconavgcolor
-					trayIcons[Index,"hIcon"]   := hIcon
-					trayIcons[Index,"iconMD5"] := iconMD5
-					trayIcons[Index,"Path"]    := systrayicondir "\" sProcess "\" iconMD5  ".bmp"
-					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Color String `""  iconavgcolor  "`" ")
-					SendRainmeterCommand("!SetOption MeasureTray" A_Index "iconpath String `""  trayIcons[Index,"Path"]  "`" ")
+				if(!FileExist(systrayicondir "\" sProcess)){
+					DirCreate systrayicondir "\" sProcess
 				}
 
-				if(sTooltip != trayIcons[Index,"Tooltip"] ){
-					trayIcons[Index,"Tooltip"] := sTooltip
-					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Tooltip String `""  sTooltip  "`" ")
+				if(!FileExist(systrayicondir "\" sProcess "\" iconMD5  ".bmp")){
+					SaveHICONtoFile(hIconBmp,systrayicondir "\" sProcess "\" iconMD5 ".bmp")
 				}
 
-				if(sProcess != trayIcons[Index,"sProcess"] ){
-					trayIcons[Index,"Process"] := sProcess
-					SendRainmeterCommand("!SetOption MeasureTray" A_Index "Exe String `""  sProcess  "`" ")
-				}
+				trayIcons[Index,"Color"]   := iconavgcolor
+				trayIcons[Index,"hIcon"]   := hIcon
+				trayIcons[Index,"iconMD5"] := iconMD5
+				trayIcons[Index,"Path"]    := systrayicondir "\" sProcess "\" iconMD5  ".bmp"
+				SendRainmeterCommand("!SetOption MeasureTray" A_Index "Color String `""  iconavgcolor  "`" ")
+				SendRainmeterCommand("!SetOption MeasureTray" A_Index "iconpath String `""  trayIcons[Index,"Path"]  "`" ")
+			}
 
-				trayIcons[Index,"idx"]     := A_Index - 1
-				trayIcons[Index,"IDcmd"]   := IDcmd
-				trayIcons[Index,"pID"]     := pID
-				trayIcons[Index,"uID"]     := uID
-				trayIcons[Index,"msgID"]   := msgID
-				trayIcons[Index,"hWnd"]    := hWnd
-				trayIcons[Index,"Class"]   := sClass
+			if(sTooltip != trayIcons[Index,"Tooltip"] ){
+				trayIcons[Index,"Tooltip"] := sTooltip
+				SendRainmeterCommand("!SetOption MeasureTray" A_Index "Tooltip String `""  sTooltip  "`" ")
+			}
+
+			if(sProcess != trayIcons[Index,"sProcess"] ){
 				trayIcons[Index,"Process"] := sProcess
-				trayIcons[Index,"Tray"]    := trayClass				
-				Index++
+				SendRainmeterCommand("!SetOption MeasureTray" A_Index "Exe String `""  sProcess  "`" ")
+			}
+
+			trayIcons[Index,"idx"]     := A_Index - 1
+			trayIcons[Index,"IDcmd"]   := IDcmd
+			trayIcons[Index,"pID"]     := pID
+			trayIcons[Index,"uID"]     := uID
+			trayIcons[Index,"msgID"]   := msgID
+			trayIcons[Index,"hWnd"]    := hWnd
+			trayIcons[Index,"Class"]   := sClass
+			trayIcons[Index,"Process"] := sProcess
+			trayIcons[Index,"Tray"]    := trayClass				
+			Index++
 			
 		}
 		DllCall("VirtualFreeEx", Ptr, hProc, Ptr, pRB, UPtr, 0, Uint, 0x8000)
 		DllCall("CloseHandle", Ptr, hProc)
 	}
+	Loop (16 - Index){
+        SendRainmeterCommand("!SetOption MeasureTray" (Index +  A_Index) "Exe String NULL")
+        SendRainmeterCommand("!Updatemeasuregroup measuretray" (Index +  A_Index) "group ")
+        SendRainmeterCommand("!Updatemetergroup Tray" (Index +  A_Index) "Group ")
+        SendRainmeterCommand("!Redrawgroup Tray" (Index +  A_Index) "Group ")
+    }
 	DetectHiddenWindows Setting_A_DetectHiddenWindows
 	Return trayIcons
 }
 
-ClickSystray(wParam, lParam, systemTrayData)
+ClickSystray(wParam, lParam)
 {
   if(lParam = 1)
   {
-    SendSystrayClick(systemTrayData,wParam,"LBUTTONDOWN")
+    SendSystrayClick(wParam,"LBUTTONDOWN")
+  }
+  else if(lParam = 2)
+  {
+    SendSystrayClick(wParam,"LBUTTONUP")
   }
   else if(lParam = 3)
   {
-    SendSystrayClick(systemTrayData,wParam,"RBUTTONDOWN")
+    SendSystrayClick(wParam,"RBUTTONDOWN")
   }
   else if(lParam = 4)
   {
-    SendSystrayClick(systemTrayData,wParam,"LBUTTONUP")
-  }
-  else if(lParam = 6)
-  {
-    SendSystrayClick(systemTrayData,wParam,"RBUTTONUP")
+    SendSystrayClick(wParam,"RBUTTONUP")
   }
 }
 
 
-SendSystrayClick(trayObject, buttonIndex, sButton := "LBUTTONUP")
+SendSystrayClick(trayitemindex,  sButton := "LBUTTONUP")
 {
-	Global systemTrayData	
-	DetectHiddenWindows (Setting_A_DetectHiddenWindows := A_DetectHiddenWindows) ? "On" : "Off"
+	Global trayIcons	
+	Global Setting_A_DetectHiddenWindows
+	DetectHiddenWindows "On"
 	WM_MOUSEMOVE	  := 0x0200
 	WM_LBUTTONDOWN	  := 0x0201
 	WM_LBUTTONUP	  := 0x0202
@@ -216,11 +223,11 @@ SendSystrayClick(trayObject, buttonIndex, sButton := "LBUTTONUP")
 	WM_MBUTTONUP	  := 0x0208
 	WM_MBUTTONDBLCLK := 0x0209
 	sButton := "WM_" sButton
-	msgID  := systemTrayData["Tray",trayObject,buttonIndex].msgID
-	uID    := systemTrayData["Tray",trayObject,buttonIndex].uID
-	hWnd   := systemTrayData["Tray",trayObject,buttonIndex].hWnd
+	msgID  := trayIcons[trayitemindex].msgID
+	uID    := trayIcons[trayitemindex].uID
+	hWnd   := trayIcons[trayitemindex].hWnd
 
-	if(systemTrayData["Tray",trayObject,buttonIndex].Tooltip = "Safely Remove Hardware and Eject Media" && (sButton := "WM_LBUTTONUP" || sButton := "WM_RBUTTONUP"))
+	if(trayIcons[trayitemindex].Tooltip = "Safely Remove Hardware and Eject Media" && (sButton := "WM_LBUTTONUP" || sButton := "WM_RBUTTONUP"))
 	{
 		Run "RunDll32.exe shell32.dll,Control_RunDLL hotplug.dll"
 	}
@@ -234,4 +241,5 @@ SendSystrayClick(trayObject, buttonIndex, sButton := "LBUTTONUP")
 	return
 }
 
-SetTimer "TrayIcon_GetInfo", 1000
+
+OnMessage(16682, "ClickSystray")
